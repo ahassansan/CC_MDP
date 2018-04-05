@@ -6,8 +6,7 @@ buses, lines, generators, rPTDF =
     load_case_data()
     tic()
     time_det = zeros(4) # getsolvetime(m::Model)
-rPTDF_tr = transpose(rPTDF)
-
+n_buses = 33#length(BUSES)
 
 numbuses = collect(keys(buses))
 numlines = collect(keys(lines))
@@ -21,7 +20,6 @@ end
 η_g = 0.05 # 1 - Confidence for generation limit cc
 sd = 0.3
 var = sd^2#0.1
-n_buses = 33#length(BUSES)
 var_true_vector = ones(n_buses)*var
 error_variances = var_true_vector
 
