@@ -61,7 +61,7 @@ var_P = abc
 
 error_var_sum = sum(abc)
 
-m = ChanceModel(solver=GurobiSolver())
+m = ChanceModel(solver=IpoptSolver())
 
 @variable(m, v[bus_set] >= 0) #variable for voltage square
 @variable(m, fp[bus_set]) #variable for active power flow
