@@ -1,16 +1,11 @@
 using JuMP, JuMPChance
 using Ipopt
 using Distributions
-using Gurobi
-
-#include("Input.jl") #Input data for the distribution network
 
 buses, lines, generators, rPTDF = 
     load_case_data()
     tic()
     time_det = zeros(4) # getsolvetime(m::Model)
-#numbuses = length(buses)
-#numlines = length(lines)
 rPTDF_tr = transpose(rPTDF)
 
 
@@ -22,17 +17,13 @@ for g in keys(generators)
     push!(gen_bus, generators[g].bus_idx)
 end
 
-
-
 η_v = 0.05 # 1 - Confidence for voltage limit cc
 η_g = 0.05 # 1 - Confidence for generation limit cc
-
 sd = 0.3
 var = sd^2#0.1
 n_buses = 33#length(BUSES)
 var_true_vector = ones(n_buses)*var
 error_variances = var_true_vector
-#function Solve_CCLinDist(buses, lines, generators, error_variances)
 
 function opf_RRC(time_per)
 
@@ -67,11 +58,6 @@ end
 
 v_root = 1
 
-#var_sum_P = sum(error_variances)
-#var_P = error_variances
-
-#error_var_sum = sum(error_variances)
-
 var_sum_P = sum(abc)
 var_P = abc
 
@@ -89,13 +75,6 @@ m = ChanceModel(solver=GurobiSolver())
 @variable(m, loadq[bus_set]) 
 
 @indepnormal(m, e[z=1:length(bus_set)], mean=zeros(length(bus_set)), var=var_P)
-
-#@objective(m, Min, sum((gp[g]^2 + α[g]^2*error_var_sum) * buses[g].generator.cost for g in gen_bus)
- #                  + sum((gq[g]^2 + α[g]^2*sum(error_variances[b]*buses[b].tanphi for b in bus_set)) * buses[g].generator.cost  for g in gen_bus))
-
-#@objective(m, Min, sum((gp[g]^2 + α[g]^2*error_var_sum) * buses[g].generator.cost for g in gen_bus))
-
-#@objective(m, Min, sum(lines_to[b].r*(fp[b]^2+fq[b]^2) for b in setdiff(bus_set, [root_bus])) )
 
 # Expected loss minimization
 @objective(m, Min, 10*(sum( lines_to[b].r*(sum(rPTDF[lines_to[b].index, k] *((var_P[k] + (α[k]^2)*var_sum_P)) for k in bus_set) + (fp[b])^2 ) for b in setdiff(bus_set, [root_bus])) +
@@ -128,7 +107,6 @@ for b in setdiff(bus_set, [root_bus])
 # All buses without root
     b_ancestor = buses[b].ancestor[1]
     @constraint(m, v[b] == v[b_ancestor] - 2*(lines_to[b].r * fp[b] + lines_to[b].x * fq[b]))
-    #@constraint(m, fp[b]^2 + fq[b]^2 <= lines_to[b].s_max^2)
 end
 
 # CHANCE CONSTRAINTS:
@@ -141,19 +119,6 @@ for b in gen_bus
     @constraint(m, gq[b] + α[b]*sum(e[bb] * buses[bb].tanphi for bb in bus_set) >= -buses[b].generator.g_Q_max, with_probability = (1 - η_g))
 end
 
-#=for b in setdiff(bus_set, [root_bus])
-# All buses without root
-    l = lines_to[b]
-    @constraint(m,  v[b] - 2 * (l.r * sum(rPTDF[l.index, b]*(e[i] - α[i]*sum(e[z] for z in bus_set)) for i in bus_set) +
-                             l.x * sum(rPTDF[l.index, i]*(e[i]*buses[i].tanphi - α[i]*sum(e[z]*buses[z].tanphi for z in bus_set)) for i in bus_set))
-            <= buses[b].v_max, with_probability = (1 - η_v))
-
-    @constraint(m,  v[b] - 2 *(l.r * sum(rPTDF[l.index, b]*(e[i] - α[i]*sum(e[z] for z in bus_set)) for i in bus_set) +
-                             l.x * sum(rPTDF[l.index, i]*(e[i]*buses[i].tanphi - α[i]*sum(e[z]*buses[z].tanphi for z in bus_set)) for i in bus_set))
-            >= buses[b].v_min, with_probability = (1 - η_v))
-end=#
-
-
 for b in setdiff(bus_set, [root_bus])
 # All buses without root
     l = lines_to[b]
@@ -165,17 +130,6 @@ for b in setdiff(bus_set, [root_bus])
                     sum(rPTDF[l.index, b] * l.x * sum(rPTDF[l.index, j] * (e[j]*buses[j].tanphi - α[j]*sum(e[z]*buses[j].tanphi for z in bus_set)) for j in bus_set) for l in line_arr))
                     >= buses[b].v_min, with_probability = (1 - η_v))
 end
-
-#=for b in setdiff(bus_set, [root_bus])
-# All buses without root
-    l = lines_to[b]
-    @constraint(m,  v[b] - 2 *(l.r * sum(rPTDF[:, l.index]*e[b]) + l.x * sum(rPTDF[:, l.index]*e[b]*buses[b].tanphi))
-            <= buses[b].v_max, with_probability = (1 - η_v))
-
-    @constraint(m,  v[b] - 2 *(l.r * sum(rPTDF[:, l.index]*e[b]) + l.x *sum(rPTDF[:, l.index]*e[b]*buses[b].tanphi))
-            >= buses[b].v_min, with_probability = (1 - η_v))
-end=#
-
 
 method = :Cuts
 # method = :Reformulate
@@ -227,12 +181,6 @@ println(line_results)
 println(bus_results)
 volt_prof = getvalue(v)
 
-    #=open("/Users/alihassan/Documents/Matlab/MDP_CC/10volt_CC_$var.csv","w") do fpz
-    println(fpz,"")
-        for t in bus_set
-            println(fpz,getvalue(v[t]))
-        end
-    end=#
 n_buses = nrow(bus_results)
 n_lines = nrow(line_results)
 ########### CC_TEST###################
@@ -312,8 +260,6 @@ for s in 1:samples
 
     v_real = ones(n_buses) - 2 * rPTDF' * (R.*fP_real + X.*fQ_real)
 
-        #v_real = v_base -2( rPTDF*(load_dev_P - α .* load_dev_P_sum) +  rPTDF*(load_dev_Q - α .* load_dev_Q_sum)  )
-
     # Check for constraint violations
     for i in gen_bus
         gP_real[i] > buses[i].generator.g_P_max ? g_violation += 1 : nothing
@@ -336,19 +282,7 @@ for s in 1:samples
         v_violation_per_bus[i] += v_violation_temp
         v_violation_temp = 0
     end
-    #=for i in 1:n_buses
-        if v_real[i] > buses[i].v_max
-            v_viol_flag = true
-            v_violation += 1
-        elseif v_real[i] < buses[i].v_min
-            v_viol_flag = true
-            v_violation += 1
-        end
-    end
- 
-    if v_viol_flag
-        v_violateion_in_sample +=1
-    end=#
+
 end
 percent_viol = zeros(33)
 for i =1:33
@@ -360,15 +294,6 @@ println(" ++ Test Results with $samples samples ++ ")
 @printf("%.2f%% of generation constraints hold (%d violations) . \n", ((1-(g_violation/(4*samples*length(gen_bus))))*100), g_violation)
 println()
 println()
-
-    #open("/Users/alihassan/Documents/Matlab/MDP_CC_24/voltage_violation_MDP_0.csv","w") do fpz
-   #= println(fpz,"")
-        for t=1:24
-            #println(fpz,rho_opt[t,1],",",rho_opt[t,2],",",rho_opt[t,3],",",rho_opt[t,4],",",rho_opt[t,5])
-            println(fpz,100-((1-(v_violation/(2*500*n_buses)))*100))
-        end
-    end=#
-
 
 
 return Y_P, Y_Q, getobjectivevalue(m), v_violation, g_violation, volt_prof, percent_viol
