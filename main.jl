@@ -40,8 +40,8 @@ load_MDP_q = zeros(length(bus_MDP),T)
 cong_price_p = zeros(length(bus_MDP),T)
 cong_price_q = zeros(length(bus_MDP),T) 
 
-g_uni=1;
-g_pen=1*ones(Np*2,Np*2)
+g_uni=1; 
+g_pen=1*ones(Np*2,Np*2) #replace the factor 1 here with 10 for nonuniform case
 g_pen[1,2*Np]=1
 for a=1:(2*Np-1)
     g_pen[a+1,a]=1
