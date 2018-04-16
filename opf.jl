@@ -241,8 +241,8 @@ for s in 1:samples
     load_dev_P_sum = sum(load_dev_P)
     load_dev_Q_sum = sum(load_dev_Q)
 
-    dP_real = dP + load_dev_P
-    dQ_real = dQ + load_dev_Q
+    dP_real = dP
+    dQ_real = dQ 
 
     gP_real = gP + (α .* load_dev_P_sum)
     gQ_real = gQ + (α .* load_dev_Q_sum)
