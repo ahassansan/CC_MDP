@@ -248,8 +248,8 @@ for s in 1:samples
     gQ_real = gQ + (α .* load_dev_Q_sum)
 
     # Calculate Flow and Voltage Based on LinDistFlow
-    net_load_P = dP_real - gP_real - (p_PV+load_dev_P)
-    net_load_Q = dQ_real - gQ_real - (q_PV+load_dev_Q)
+    net_load_P = dP_real - gP_real - p_PV + load_dev_P
+    net_load_Q = dQ_real - gQ_real - q_PV + load_dev_Q
 
     fP_real = rPTDF*net_load_P
     fQ_real = rPTDF*net_load_Q
